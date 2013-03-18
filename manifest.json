@@ -1,0 +1,37 @@
+{
+  "manifest_version": 2,
+
+  "name": "Seruro",
+  "description": "This extension integrates Seruro into Google Chrome.",
+  "version": "0.1",
+
+  /*"browser_action": {
+    "default_icon": "icon.png",
+    "default_title": "Seruro Settings",
+    "default_popup": "seruro.html"
+  },*/
+  
+  /* Not sure what this does yet. */
+  "background": { "scripts": ["main.js"] },
+  
+  "page_action": {
+  	"default_icon": "icon.png"
+  },
+  
+  "options_page": "seruro.html",
+  
+  "permissions": [
+  
+  /* Chome.* APIs */
+  
+  "storage",
+  "tabs",
+  
+  /* Sites using Seruro */
+  
+    "https://mail.google.com/",
+    "http://*/*",
+    "https://*/*"
+    
+  ]
+}
