@@ -17,5 +17,8 @@ seruro.client = {};
 chrome.extension.onMessage.addListener(function(request, sender, sendResponse) {
 	/* Might want to match extension id */
 	console.log(request);
-	seruro.init();
+	if (request.event == "init") {
+		/* Sent once the client code has been injected. */
+		seruro.init();
+	}
 });

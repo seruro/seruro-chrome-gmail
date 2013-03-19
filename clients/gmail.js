@@ -13,7 +13,7 @@ seruro.client = {
 	
 	init: function() {
 		console.log("Seruro: Gmail client loaded.");
-		
+
 		/* Store needed nodes */
 		seruro.client.observers.init = seruro.client._addObserver(document.body, function (node) {
 			for (var i = 0; i < seruro.client.elements.content.length; i++) {
@@ -67,6 +67,10 @@ seruro.client = {
 	
 	_newCompose: function (node) {
 		console.log(node);
+		var title = node.getElementsByClassName('Hp')[0];
+		var img = document.createElement('img');
+		img.src = chrome.extension.getURL('images/icon_good.png');
+		title.appendChild(img);
 	}
 	
 };

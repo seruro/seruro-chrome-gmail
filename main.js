@@ -3,7 +3,13 @@
 var display = {
 	loadSettings: function(items) {
 		/* Callback of sync.get(items) */
-		display.settings = items.settings;
+		
+		/* If settings is not configured, we should prompt to configure options. */
+		if (! ('settings' in items)) {
+			console.log('Seruro debug: please configure Seruro options.');
+		} else {
+			display.settings = items.settings;
+		}
 		
 		/* The local storage settings should be available in display.settings.
 		 * These are populated through event listeners on the chrome storage APIs.
@@ -65,7 +71,8 @@ var display = {
 	
 	checkURL: function(tabId, changeInfo, tab) {
 		/* Called when a tab is updated. */
-		if (tab.url == undefined || changeInfo.status == "complete") return false;
+		if (tab.url == undefined || changeInfo.status != "complete") return false;
+		console.log(changeInfo);
 		for (site in seruro.clients) {
 			/* Make sure Seruro is enabled for the site, then check the URL. */
 			if (display.settings.sites[site] && 
@@ -84,6 +91,7 @@ $ = {
 	}
 };
 
+/* Template for reference. */
 display.settings = {
 	/* Will be populated at load from chrome.storage.sync. */
 	sites: {}, /* Enables each seruro.clients */
@@ -104,6 +112,7 @@ var seruro = {
 	
 	addClient: function (request, sender, sendResponse) {
 		/* Only load client if it does not already exist. */
+		console.log(request);
 		if (request.loaded == true) return;
 
 		//seruro.client = request.site;
@@ -111,10 +120,10 @@ var seruro = {
 		
 		/* Add content script to client */
 		var content = "clients/" + request.site + ".js";
-		chrome.tabs.executeScript(null, {file: "content.js"}, function () {
+		chrome.tabs.executeScript(sender.tab.id, {file: "content.js"}, function () {
 			$.l("Injected: content.js, " + sender.tab.id);
-			chrome.tabs.executeScript(null, {file: content}, function () {
-				chrome.tabs.sendMessage(sender.tab.id, {target: "client"}, function() {});
+			chrome.tabs.executeScript(sender.tab.id, {file: content}, function () {
+				chrome.tabs.sendMessage(sender.tab.id, {event: "init"}, function() {});
 			});
 		});
 	}
