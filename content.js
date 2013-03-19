@@ -5,6 +5,8 @@ var seruro = {
 	init: function() {
 		seruro.client.init();
 		console.log('Seruro initialized.');
+		
+		//seruro.client.startWatchers();
 	}		
 };
 

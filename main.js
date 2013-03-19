@@ -94,15 +94,15 @@ var seruro = {
 	client: null,
 	
 	/* Todo: could be represented as a single site with multiple URLs. */
-	clients: {gmail: "http://prosauce.org"},
+	clients: {gmail: "https://mail.google.com"},
 	
-	checkClient: function(tabId, site) {
+	checkClient: function (tabId, site) {
 		chrome.tabs.executeScript(tabId, {
 			code: "chrome.extension.sendRequest({site: '" + site + "', loaded: typeof seruro !== 'undefined'});"
 		});
 	},
 	
-	addClient: function(request, sender, sendResponse) {
+	addClient: function (request, sender, sendResponse) {
 		/* Only load client if it does not already exist. */
 		if (request.loaded == true) return;
 
