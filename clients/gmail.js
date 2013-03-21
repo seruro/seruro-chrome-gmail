@@ -25,7 +25,7 @@ seruro.client = {
 		/* Called by seruro.init() when the script is injected. 
 		 * The client page is _not_ guaranteed to have completely rendered when this script runs.
 		 */
-		console.log("Seruro: Gmail client loaded.");
+		S().log("Gmail client loaded.");
 		
 		/* Check if the compose-wrapper node exists. */
 		var content = S().getClasses(document.body, S().getElement('content')[0]);
@@ -64,7 +64,7 @@ seruro.client = {
 		 * A listener will create an event when a specific element changes.
 		 * This allows Seruro to modify content without polling for UI events. 
 		 */
-		console.log("Seruro: startWatchers initialized.");
+		S().log("startWatchers initialized.");
 		
 		S().setElement('contentNode', node);
 		/* A compose-wrapper has been found, store this node.
@@ -100,8 +100,10 @@ seruro.client = {
 	},
 	
 	newCompose: function (node) {
-		console.log("Seruro: new-compose created.");
-		/*console.log(node);*/
+		S().log("new-compose created.");
+		
+		/* Add this to the Seruro message list. */
+		var id = S().addMessage(node);
 		
 		/* The encrypt/sign buttons will go next to the subject. */
 		var subject = S().getClasses(node, S().getElement('composeSubject'));
@@ -111,32 +113,62 @@ seruro.client = {
 		}
 		/* Small hack to gain real-estate. */
 		subject[0].firstChild.style.width = '90%'; 
+		/* Create and add the Encrypt/Sign buttons. */
 		var encryptButton = S().UI.encryptButton();
 		subject[0].appendChild(encryptButton);
 		
+		/* Add observers to the To/CC/BCC/From fields. */
 		var people = S().getClasses(node, S().getElement('composePeople'));
 		if (people.length == 0) {
 			S().log("(error) newCompose: could not find people table.");
 			return;
 		}
-		console.log(people[0]);
 		S().addObserver(people[0], 
+			/* Keep track of persons added and removed. */
+			/* Though, the list should be regenerated when submitted. */
 			{add: S().client.addPerson, remove: S().client.removePerson}, 
+			{message: id},
+			/* There are many elements in this observer catch-all. */
 			{subtree: true});
 		
 		return;
 	},
 	
 	addPerson: function (node, args) {
+		/* If a person is added, not tracking whether they are in To/CC/BCC/From. */
 		if (node.className != S().getElement('personWrapper'))
 			return;
 		
-		S().log('person added!');
-		console.log(node);
+		/* Should be converted to element and className lookup. */
+		var person = {node: node.firstChild, name: node.firstChild.firstChild.innerHTML};
+		S().addRecipient(person, args.message);
+		
+		var certIcon = S().UI.validCert();
+		person.node.insertBefore(certIcon, person.node.firstChild.nextSibling);
+		S().log('addPerson: ' + person.name + ' to message ' + args.message);
 	},
 	
 	removePerson: function (node, args) {
-		S().log('person removed!');
+		/* If a person is removed, not tracking whether they are in To/CC/BCC/From. */
+		if (node.className != S().getElement('personWrapper'))
+			return;
+		if (! args.message in S().messages) {
+			S().log("(error) trying to remove person from unknown message.");
+			return;
+		}
+		
+		/* Message object lookup via argument passed from newCompose observer. */
+		var message = S().messages[args.message];
+		for (var i = 0; i < message.recipients.length; i++) {
+			/* Note that this compares the firstChild, this should be converted to a class lookup. */
+			if (message.recipients[i].node == node.firstChild) {
+				S().log("removePerson: " + message.recipients[i].name + " from message " + args.message);
+				return;
+			}
+		}
+		
+		/* The node could not be found in this message, something is wrong. */
+		S().log("(error) removePerson: could not find node!");
 	}
 	
 };
