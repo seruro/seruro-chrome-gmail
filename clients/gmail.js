@@ -12,6 +12,9 @@ seruro.client = {
 		composeWrapper: 'no',
 		composeWindow: 'AD',
 		composeSubject: 'aoD az6',
+		composePeople: 'GS',
+		
+		personWrapper: 'vR',
 		
 		composeContent: 'M9',
 		composeContext: 'J-M jQjAxd',
@@ -25,14 +28,19 @@ seruro.client = {
 		console.log("Seruro: Gmail client loaded.");
 		
 		/* Check if the compose-wrapper node exists. */
-		var wrappers = S().getClasses(document.body, S().getElement('composeWrapper'));
-		if (wrappers.length > 0) {
-			S().log("found existing composeWrapper.");
-			/* If yes, we do not need to wait. */
-			S().client.startWatchers(S().getClasses(document.body, 
-				S().getElement('content')[0])[0]);
-			S().client.existingCompose();
-			return;
+		var content = S().getClasses(document.body, S().getElement('content')[0]);
+		/* Note: The above line looks only for the first content class. */
+		if (content.length > 0) {
+			/* Must preserve inner node check, even with a nasty double if. */
+			var wrappers = S().getClasses(content[0], S().getElement('composeWrapper'));
+			if (wrappers.length > 0) {
+				S().log("found existing composeWrapper.");
+				/* If yes, we do not need to wait. */
+				S().client.startWatchers(S().getClasses(document.body, 
+					S().getElement('content')[0])[0]);
+				S().client.existingCompose();
+				return;
+			}
 		}
 
 		/* Wait for the page the create the 'known' content wrapper. */
@@ -94,15 +102,41 @@ seruro.client = {
 	newCompose: function (node) {
 		console.log("Seruro: new-compose created.");
 		/*console.log(node);*/
-		/* The encrypt/sign buttons will go next to the subject. */
-		var subject = S().getClasses(node, S().getElement('composeSubject'))[0];
-		/* Small hack to gain real-estate. */
-		subject.firstChild.style.width = '90%'; 
 		
+		/* The encrypt/sign buttons will go next to the subject. */
+		var subject = S().getClasses(node, S().getElement('composeSubject'));
+		if (subject.length == 0) {
+			S().log('(error) newCompose: could not find subject.');
+			return;
+		}
+		/* Small hack to gain real-estate. */
+		subject[0].firstChild.style.width = '90%'; 
 		var encryptButton = S().UI.encryptButton();
-		subject.appendChild(encryptButton);
+		subject[0].appendChild(encryptButton);
+		
+		var people = S().getClasses(node, S().getElement('composePeople'));
+		if (people.length == 0) {
+			S().log("(error) newCompose: could not find people table.");
+			return;
+		}
+		console.log(people[0]);
+		S().addObserver(people[0], 
+			{add: S().client.addPerson, remove: S().client.removePerson}, 
+			{subtree: true});
 		
 		return;
+	},
+	
+	addPerson: function (node, args) {
+		if (node.className != S().getElement('personWrapper'))
+			return;
+		
+		S().log('person added!');
+		console.log(node);
+	},
+	
+	removePerson: function (node, args) {
+		S().log('person removed!');
 	}
 	
 };
