@@ -18,7 +18,7 @@
   	"default_icon": "images/icon.png"
   },
   
-  "web_accessible_resources": [ "images/icon_good.png", "images/icon_bad.png", "image/icon.png" ],
+  "web_accessible_resources": [ "images/icon_good.png", "images/icon_bad.png", "images/icon.png" ],
   
   "options_page": "seruro.html",
   

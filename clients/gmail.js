@@ -1,76 +1,108 @@
 /* Gmail-specific Seruro */
 
 seruro.client = {
+	name: 'GMail',
+	
 	elements: {
+		/* This lists common email-page elements and their class identifiers.
+		 * Seruro assumes these common elements and will modify related page elements to
+		 * add Seruro-related functions and UI features.
+		 */
 		content: ['dw', 'dw np'],
-		compose: 'no',
+		composeWrapper: 'no',
+		composeWindow: 'AD',
+		composeSubject: 'aoD az6',
+		
 		composeContent: 'M9',
 		composeContext: 'J-M jQjAxd',
 		insertOption: 'J-Ph J-N'
 	},	
 	
-	observers: {},
-	
 	init: function() {
+		/* Called by seruro.init() when the script is injected. 
+		 * The client page is _not_ guaranteed to have completely rendered when this script runs.
+		 */
 		console.log("Seruro: Gmail client loaded.");
+		
+		/* Check if the compose-wrapper node exists. */
+		var wrappers = S().getClasses(document.body, S().getElement('composeWrapper'));
+		if (wrappers.length > 0) {
+			S().log("found existing composeWrapper.");
+			/* If yes, we do not need to wait. */
+			S().client.startWatchers(S().getClasses(document.body, 
+				S().getElement('content')[0])[0]);
+			S().client.existingCompose();
+			return;
+		}
 
-		/* Store needed nodes */
-		seruro.client.observers.init = seruro.client._addObserver(document.body, function (node) {
-			for (var i = 0; i < seruro.client.elements.content.length; i++) {
-				if (node.className != seruro.client.elements.content[i])
+		/* Wait for the page the create the 'known' content wrapper. */
+		S().addObserver(document.body, function (node, args) {
+			for (var i = 0; i < S().client.elements.content.length; i++) {
+				/* Make sure this node IS THE NODE WE'RE LOOKING FOR... */
+				if (node.className != S().getElement('content')[i])
 					continue;
-				seruro.client.elements.contentNode = node;
-				seruro.client.elements.composeNode = node.getElementsByClassName(seruro.client.elements.compose)[0];
-				seruro.client.observers.init.disconnect();
-				seruro.client.startWatchers();
+				/* Remove this observer */
+				args.observer.disconnect();
+				/* Wait for new messages */
+				S().client.startWatchers(node);
 				break;
 			}
 		});
+		return;
 	},
 	
-	_addObserver: function(node, callback) {
-		if (typeof callback != 'function') {
-			console.log("_addObserver: " + callback + 'is not a function');
-			return;
-		}
-		if (node == undefined) {
-			console.log("_addOberser: node is undefined.");
-			return;
-		}
+	startWatchers: function(node) {
+		/* Should add listeners to the page.
+		 * A listener will create an event when a specific element changes.
+		 * This allows Seruro to modify content without polling for UI events. 
+		 */
+		console.log("Seruro: startWatchers initialized.");
 		
-		var observer = new WebKitMutationObserver(function(mutations) {
-			mutations.forEach(function(mutation) {
-				for (var i = 0; i < mutation.addedNodes.length; i++)
-					callback(mutation.addedNodes[i]);
-			});
-		});
-		observer.observe(node, {childList: true});
-		return observer;
-	},
-	
-	startWatchers: function() {
-		/* Should add listeners to the page */
-		//var nodes = [];
-		console.log("startWatchers: init");
-		var observer = new WebKitMutationObserver(function(mutations) {
-			mutations.forEach(function(mutation) {
-				for (var i = 0; i < mutation.addedNodes.length; i++) 
-					//nodes.push(mutation.addedNodes[i]);
-					seruro.client._newCompose(mutation.addedNodes[i]);
-			});
+		S().setElement('contentNode', node);
+		/* A compose-wrapper has been found, store this node.
+		 * All new-compose message divs will be created within this wrapper.
+		 */
+		S().setElement('composeWrapperNode', 
+			S().getClasses(node, S().getElement('composeWrapper'))[0]);
+		
+		/* Create an observer for new messages. */
+		S().addObserver(S().getElement('composeWrapperNode'), function (node, args) {
+			/* A new-compose was created. */
+			S().client.newCompose(node);
+			/* This observer must persist for the entire session. */
 		});
 		
-		var composeShell = seruro.client.elements.composeNode;
-		observer.observe(composeShell, {childList: true});
+		/* Create an observer for reading messages. */
 		
+		return;
 	},
 	
-	_newCompose: function (node) {
-		console.log(node);
-		var title = node.getElementsByClassName('Hp')[0];
-		var img = document.createElement('img');
-		img.src = chrome.extension.getURL('images/icon_good.png');
-		title.appendChild(img);
+	existingCompose: function() {
+		/* Watchers should have already started before checking for existing compose(s).
+		 * Now search the DOM for messages that were _not_ created as the result of an
+		 * observed UI event.
+		 */
+		var composes = S().getClasses(S().getElement('composeWrapperNode'),
+			S().getElement('composeWindow'));
+		for (var i = 0; i < composes.length; i++) {
+			S().client.newCompose(composes[i]);
+		}
+		
+		return;
+	},
+	
+	newCompose: function (node) {
+		console.log("Seruro: new-compose created.");
+		/*console.log(node);*/
+		/* The encrypt/sign buttons will go next to the subject. */
+		var subject = S().getClasses(node, S().getElement('composeSubject'))[0];
+		/* Small hack to gain real-estate. */
+		subject.firstChild.style.width = '90%'; 
+		
+		var encryptButton = S().UI.encryptButton();
+		subject.appendChild(encryptButton);
+		
+		return;
 	}
 	
 };
