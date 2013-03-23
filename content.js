@@ -147,13 +147,14 @@ var seruro = {
 seruro.UI = {
 	encryptButton: function() {
 		/* Shown on the UI, a click will toggle the message to be encrypted. */
-		var button = document.createElement('img');
-		button.src = chrome.extension.getURL('images/icon.png');
-		button.style.float = 'right';
-		button.style.cursor = 'pointer';
-		S().addListener(button, 'click', S().UI.actions.encryptButtonClick);
 		
-		return button;
+		return $("<img />", {
+			click: function() {
+				S().UI.actions.encryptButtonClick();
+			},
+			css: { "float": "right", "cursor": "pointer" },
+			src: chrome.extension.getURL('images/icon.png')
+		});
 	},
 	
 	signButton: function() {
@@ -162,26 +163,25 @@ seruro.UI = {
 	
 	validCert: function() {
 		/* Shows next to a recipient person who has a valid cert. */
-		var icon = document.createElement('img');
-		icon.src = chrome.extension.getURL('images/glyphicons_good.png');
-		icon.style.height = '14px';
-		icon.style.width = '14px';
-		icon.style.paddingTop = '2px';
-		S().addListener(icon, 'click', S().UI.actions.validCertClick);
 		
-		return icon;
+		return $("<img />", {
+			click: function() {
+				S().UI.actions.validCertClick();
+			},
+			css: {"height": "14px", "width": "14px", "paddingTop": "2px"},
+			src: chrome.extension.getURL("images/glyphicons_good.png")
+		});
 	},
 	
 	invalidCert: function() {
 		/* Shows next to a recipient person without a cert, or with an invalid cert. */
-		var icon = document.createElement('img');
-		icon.src = chrome.extension.getURL('images/glyphicons_bad.png');
-		icon.style.height = '14px';
-		icon.style.width = '14px';
-		icon.style.paddingTop = '2px';
-		S().addListener(icon, 'click', S().UI.actions.invalidCertClick);
-		
-		return icon;
+		return $("<img />", {
+			click: function() {
+				S().UI.actions.invalidCertClick();
+			},
+			css: {"height": "14px", "width": "14px", "paddingTop": "2px"},
+			src: chrome.extension.getURL("images/glyphicons_bad.png")
+		});
 	},
 	
 	successAlert: function() {
@@ -239,8 +239,20 @@ seruro.server = {
 		return (address in S().server.certs);
 	},
 	
+	sign: function(message, self) {
+		
+	},
+	
+	verify: function(message, sender) {
+		
+	},
+	
 	/* Ask server to encrypt a message. */
-	encrypt: function(message) {
+	encrypt: function(message, recipients) {
+		return false;
+	},
+	
+	decrypt: function(message, self) {
 		
 	}
 };
