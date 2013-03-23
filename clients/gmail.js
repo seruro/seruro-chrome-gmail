@@ -8,17 +8,17 @@ seruro.client = {
 		 * Seruro assumes these common elements and will modify related page elements to
 		 * add Seruro-related functions and UI features.
 		 */
-		content: ['dw', 'dw np'],
-		composeWrapper: 'no',
-		composeWindow: 'AD',
-		composeSubject: 'aoD az6',
-		composePeople: 'GS',
+		content: ['.dw', '.dw.np'],
+		composeWrapper: '.no',
+		composeWindow: '.AD',
+		composeSubject: '.aoD.az6',
+		composePeople: '.GS',
 		
-		personWrapper: 'vR',
+		personWrapper: '.vR',
 		
-		composeContent: 'M9',
-		composeContext: 'J-M jQjAxd',
-		insertOption: 'J-Ph J-N'
+		composeContent: '.M9',
+		composeContext: '.J-M.jQjAxd',
+		insertOption: '.J-Ph.J-N'
 	},	
 	
 	init: function() {
@@ -26,16 +26,18 @@ seruro.client = {
 		 * The client page is _not_ guaranteed to have completely rendered when this script runs.
 		 */
 		S().log("Gmail client loaded.");
-		
+
 		/* Check if the compose-wrapper node exists. */
-		var content = S().getClasses(document.body, S().getElement('content')[0]);
+		//var content = S().getClasses(document.body, S().getElement('content')[0]);
+		var content = $(document.body).find(S('content')[0]);
 		/* Note: The above line looks only for the first content class. */
 		if (content.length > 0) {
-			S().setElement('contentNode', content[0]);
+			S('contentNode', content.get(0));
 			/* Look for compose wrapper .*/
-			var wrappers = S().getClasses(content[0], S().getElement('composeWrapper'));
+			//var wrappers = S().getClasses(content[0], S().getElement('composeWrapper'));
+			var wrappers = $(content.first()).find(S('composeWrapper'));
 			if (wrappers.length > 0) {
-				S().setElement("composeWrapperNode", wrappers[0]);
+				S("composeWrapperNode", wrappers.get(0));
 				S().client.startWatchers();
 			} else {
 				/* Wait for the compose wrapper. */
@@ -47,13 +49,13 @@ seruro.client = {
 
 		/* Wait for the page the create the 'known' content wrapper. */
 		S().addObserver(document.body, function (node, args) {
-			for (var i = 0; i < S().client.elements.content.length; i++) {
+			for (var i = 0; i < S('content').length; i++) {
 				/* Make sure this node IS THE NODE WE'RE LOOKING FOR... */
-				if (node.className != S().getElement('content')[i])
+				if (! $(node).hasClass(S('content')[i], true))
 					continue;
 				/* Remove this observer, since there is only one matching node. */
 				args.observer.disconnect();
-				S().setElement('contentNode', node);
+				S('contentNode', node);
 				S().client.buildOut();
 				break;
 			}
@@ -66,14 +68,14 @@ seruro.client = {
 		/* Wait for the page to complete it's build out. */
 
 		/* Wait for composeWrapper */
-		S().addObserver(S().getElement('contentNode'), function (node, args) {
+		S().addObserver(S('contentNode'), function (node, args) {
 			/* Make sure this node IS THE NODE WE'RE LOOKING FOR... */
-			if (node.className != S().getElement('composeWrapper'))
+			if (! $(node).hasClass(S('composeWrapper'), true))
 				return;
 			/* A compose-wrapper has been found, store this node.
 			 * All new-compose message divs will be created within this wrapper.
 			 */
-			S().setElement('composeWrapperNode', node);
+			S('composeWrapperNode', node);
 			/* Remove this observer, since there is only one matching node. */
 			args.observer.disconnect();
 			/* Create an observer for new messages. */
@@ -94,7 +96,7 @@ seruro.client = {
 		/* Search for existing composes */
 		S().client.existingCompose();
 		
-		S().addObserver(S().getElement('composeWrapperNode'), function (node, args) {
+		S().addObserver(S('composeWrapperNode'), function (node, args) {
 			/* A new-compose was created. */
 			S().client.newCompose(node);
 			/* This observer must persist for the entire session. */
@@ -106,9 +108,10 @@ seruro.client = {
 		 * Now search the DOM for messages that were _not_ created as the result of an
 		 * observed UI event.
 		 */
-		var composes = S().getClasses(S().getElement('composeWrapperNode'), S().getElement('composeWindow'));
+		//var composes = S().getClasses(S().getElement('composeWrapperNode'), S().getElement('composeWindow'));
+		var composes = $(S('composeWrapperNode')).find(S('composeWindow'));
 		for (var i = 0; i < composes.length; i++) {
-			S().client.newCompose(composes[i]);
+			S().client.newCompose(composes.get(i));
 		}
 		
 		return;
@@ -116,22 +119,21 @@ seruro.client = {
 	
 	newCompose: function (node) {
 		S().log("new-compose created.");
-		console.log(node);
 		/* Add this to the Seruro message list. */
 		var id = S().addMessage(node);
 		
 		/* The encrypt/sign buttons will go next to the subject. */
-		var subject = S().getClasses(node, S().getElement('composeSubject'));
+		var subject = $(node).find(S('composeSubject'));
 		if (subject.length == 0)
 			return S().error('newCompose: could not find subject.');
 		/* Small hack to gain real-estate. */
-		subject[0].firstChild.style.width = '90%'; 
+		$(subject[0]).find(':first').css('width', '90%');
 		/* Create and add the Encrypt/Sign buttons. */
 		var encryptButton = S().UI.encryptButton();
-		subject[0].appendChild(encryptButton);
+		$(subject[0]).append(encryptButton);
 		
 		/* Add observers to the To/CC/BCC/From fields. */
-		var people = S().getClasses(node, S().getElement('composePeople'));
+		var people = $(node).find(S('composePeople'));
 		if (people.length == 0)
 			return S().error("newCompose: could not find people table.");
 		
@@ -151,49 +153,61 @@ seruro.client = {
 	existingPerson: function(wrapper, message) {
 		/* If there was an existing compose, it may have existing people in To/CC/BCC/From. */
 		
-		var people = S().getClasses(wrapper, S().getElement('personWrapper'));
+		var people = $(wrapper).find(S('personWrapper'));
 		for (var i = 0; i < people.length; i++) {
 			S().client.addPerson(people[i], {message: message});
 		}
 	},
-	
+
 	addPerson: function (node, args) {
 		/* If a person is added, not tracking whether they are in To/CC/BCC/From. */
-		if (node.className != S().getElement('personWrapper'))
+		if (! $(node).hasClass(S('personWrapper'), true))
 			return;
-		
+
 		/* Should be converted to element and className lookup. */
 		var person = {
-			node: node.firstChild /* vN Y7BVp */, 
-			name: node.firstChild.firstChild.innerHTML,
-			address: node.firstChild.getAttribute('email')
+			node: S().client.getContactNode(node), 
+			name: S().client.getContactName(node),
+			address: S().client.getContactAddress(node)
 		};
 		S().addRecipient(person, args.message);
-		
+
 		var certIcon;
 		if (S().server.haveCert(person.address)) 
 			certIcon = S().UI.validCert();
 		else
 			certIcon = S().UI.invalidCert();
-		person.node.insertBefore(certIcon, person.node.firstChild.nextSibling);
+		//person.node.insertBefore(certIcon, person.node.firstChild.nextSibling);
+		$(person.node).children().eq(1).before(certIcon);
 		S().log('addPerson: ' + person.name + ' to message ' + args.message);
+	},
+	
+	getContactNode: function(node) {
+		return $(node).find(':first').get(0); /* vN Y7BVp */
+	},
+	
+	getContactName: function(node) {
+		return $(node).find(':first').find(":first").html()
+	},
+	
+	getContactAddress: function(node){
+		return $(node).find(':first').attr('email');
 	},
 	
 	removePerson: function (node, args) {
 		/* If a person is removed, not tracking whether they are in To/CC/BCC/From. */
-		if (node.className != S().getElement('personWrapper'))
+		if (! $(node).hasClass(S('personWrapper'), true))
 			return;
-		if (! args.message in S().messages) {
-			S().log("(error) trying to remove person from unknown message.");
-			return;
-		}
+		if (S().messages[args.message] === undefined)
+			return S().error("removePerson: cannot remove from unknown message.");
 		
 		/* Message object lookup via argument passed from newCompose observer. */
 		var message = S().messages[args.message];
 		for (var i = 0; i < message.recipients.length; i++) {
 			/* Note that this compares the firstChild, this should be converted to a class lookup. */
-			if (message.recipients[i].node == node.firstChild) {
+			if (message.recipients[i].node === S().client.getContactNode(node)) {
 				S().log("removePerson: " + message.recipients[i].name + " from message " + args.message);
+				S().removeRecipient(message.recipients[i], message);
 				return;
 			}
 		}

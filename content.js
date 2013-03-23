@@ -22,6 +22,7 @@ var seruro = {
 		if (S().initialized) return;
 		S().initialized = true;
 		
+		hacks();
 		S().client.init();
 		S().log('initialized.');
 		return;
@@ -41,31 +42,33 @@ var seruro = {
 		 * @params is an optional object passed to the callbacks.
 		 * @opts is an optional object added to the observe method options.
 		 */
-		if (typeof callback != 'function' && typeof callback != 'object') {
+		var methods, observer;
+		if (typeof callback !== 'function' && typeof callback !== 'object') {
 			S().log("(error) addObserver: callback is not a function/object.");
 			return;
 		}
-		if (node == undefined) {
+		if (node === undefined) {
 			S().log("(error) addObserver: node is undefined.");
 			return;
 		}
 
 		/* Create a callback wrapper for each type of mutation. */
-		var methods = (typeof callback === "function") ? {add: callback} : callback;
+		methods = (typeof callback === "function") ? {add: callback} : callback;
 		/* Create the observer */
-		var observer = new WebKitMutationObserver(function(mutations) {
+		observer = new WebKitMutationObserver(function(mutations) {
 			/* Take optional parameters, but create object so the observer attack. */
 			params = (typeof params === 'object') ? params : {};
 			params.observer = observer;
 			
 			mutations.forEach(function(mutation) {
+				var i;
 				/* Check nodes mutated when event fires. */
-				if ("add" in methods) {
-					for (var i = 0; i < mutation.addedNodes.length; i++)
+				if (methods.add !== undefined) {
+					for (i = 0; i < mutation.addedNodes.length; i++)
 						methods.add(mutation.addedNodes[i], params);
 				}
-				if ("remove" in methods) {
-					for (var i = 0; i < mutation.removedNodes.length; i++)
+				if (methods.remove !== undefined) {
+					for (i = 0; i < mutation.removedNodes.length; i++)
 						methods.remove(mutation.removedNodes[i], params);
 				}
 			});
@@ -104,11 +107,15 @@ var seruro = {
 		return id;
 	},
 	
-	addRecipient: function(node, message) {
+	addRecipient: function(person, message) {
 		/* Add a recipient to a message. */
 		
-		S().messages[message].recipients.push(node);
+		S().messages[message].recipients.push(person);
 		return;
+	},
+	
+	removeRecipient: function(person, message) {
+		
 	},
 	
 	/* Basic getter, setter methods. */
@@ -133,6 +140,7 @@ var seruro = {
 	get: function(name) {
 		return document.getElementById(name);
 	},
+	
 };
 
 /* Construct and return UI components. */
@@ -237,14 +245,43 @@ seruro.server = {
 	}
 };
 
-/* Faking it */
-(function(s) { 
-	s.server.certs['dave.anthony@live.com'] = {};
-	s.server.certs['cefeiner@gmail.com'] = {};
-})(seruro);
 
 /* Simple reference */
-function S() { return seruro; }
+function S(selector, value) { 
+	/* Quick access to element names. */
+	
+	if (arguments.length === 2) {
+		seruro.client.elements[selector] = value;
+		return;
+	} else if (arguments.length === 1) {
+		if (seruro.client.elements[selector] === undefined) {
+			seruro.error("elements[" + selector + "] does not exist");
+			return '';
+		}
+		return seruro.client.elements[selector];
+	}
+	return seruro;
+}
+
+function hacks() {
+	/* Faking it */
+	(function(s) { 
+		s.server.certs['dave.anthony@live.com'] = {};
+		s.server.certs['cefeiner@gmail.com'] = {};
+	})(seruro);
+
+	(function ($) {
+		$.fn.hasClassOld = $.fn.hasClass;
+		$.fn.hasClass = function (selector, special) {
+			if (arguments.length === 2 && special === true) {
+				selector = selector.replace(/\./g, ' ').trim();
+			}
+			var result = this.hasClassOld(selector);
+			return result;
+		};
+	}(jQuery));
+}
+
 
 /* Communications */
 chrome.extension.onMessage.addListener(function(request, sender, sendResponse) {
