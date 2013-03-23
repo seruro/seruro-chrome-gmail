@@ -106,8 +106,7 @@ seruro.client = {
 		 * Now search the DOM for messages that were _not_ created as the result of an
 		 * observed UI event.
 		 */
-		var composes = S().getClasses(S().getElement('composeWrapperNode'),
-			S().getElement('composeWindow'));
+		var composes = S().getClasses(S().getElement('composeWrapperNode'), S().getElement('composeWindow'));
 		for (var i = 0; i < composes.length; i++) {
 			S().client.newCompose(composes[i]);
 		}
@@ -125,7 +124,6 @@ seruro.client = {
 		var subject = S().getClasses(node, S().getElement('composeSubject'));
 		if (subject.length == 0)
 			return S().error('newCompose: could not find subject.');
-		
 		/* Small hack to gain real-estate. */
 		subject[0].firstChild.style.width = '90%'; 
 		/* Create and add the Encrypt/Sign buttons. */
@@ -134,10 +132,11 @@ seruro.client = {
 		
 		/* Add observers to the To/CC/BCC/From fields. */
 		var people = S().getClasses(node, S().getElement('composePeople'));
-		if (people.length == 0) {
-			S().log("(error) newCompose: could not find people table.");
-			return;
-		}
+		if (people.length == 0)
+			return S().error("newCompose: could not find people table.");
+		
+		S().client.existingPerson(people[0], id);
+
 		S().addObserver(people[0], 
 			/* Keep track of persons added and removed. */
 			/* Though, the list should be regenerated when submitted. */
@@ -147,6 +146,15 @@ seruro.client = {
 			{subtree: true});
 		
 		return;
+	},
+	
+	existingPerson: function(wrapper, message) {
+		/* If there was an existing compose, it may have existing people in To/CC/BCC/From. */
+		
+		var people = S().getClasses(wrapper, S().getElement('personWrapper'));
+		for (var i = 0; i < people.length; i++) {
+			S().client.addPerson(people[i], {message: message});
+		}
 	},
 	
 	addPerson: function (node, args) {

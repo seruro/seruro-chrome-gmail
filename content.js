@@ -16,7 +16,7 @@ var seruro = {
 	error: function(msg) {
 		S().log("(error) " + msg);
 		return false;
-	}
+	},
 	
 	init: function() {
 		if (S().initialized) return;
