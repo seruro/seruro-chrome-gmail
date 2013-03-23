@@ -90,7 +90,7 @@ var seruro = {
 		/* Get next ID and increment. */
 		var id = S().messageCounter++;
 		/* Create new message object. */
-		var message = new S().message;
+		var message = new Message();
 		/* Set the node (compose) of the message. */
 		message.node = node;
 		
@@ -163,6 +163,9 @@ seruro.UI = {
 		/* Shows next to a recipient person without a cert, or with an invalid cert. */
 		var icon = document.createElement('img');
 		icon.src = chrome.extension.getURL('images/glyphicons_bad.png');
+		icon.style.height = '14px';
+		icon.style.width = '14px';
+		icon.style.paddingTop = '2px';
 		S().addListener(icon, 'click', S().UI.actions.invalidCertClick);
 		
 		return icon;
@@ -201,17 +204,39 @@ seruro.UI.actions = {
 };
 
 /* Object message template. */
-seruro.message = {
-	sender: null,
+function Message () {
+	this.sender = null;
 	/* A list of (node, name) pairs. */
-	recipients: [],
-	content: null,
+	this.recipients = [];
+	this.content = null;
 	/* Compose node */
-	node: null
+	this.node = null;
 };
 
 /* Skel */
 seruro.client = {};
+
+/* Communication to server (middleware) application. */
+seruro.server = {
+	/* Local certs (in extension context, retrieved from server this session). */
+	certs: {},
+	
+	/* Ask server for a person's certificate. */
+	getCert: function(person) {
+		
+	},
+	
+	/* Ask server to encrypt a message. */
+	encrypt: function(message) {
+		
+	}
+};
+
+/* Faking it */
+(function(s) { 
+	s.server.certs['dave.anthony@live.com'] = {};
+	s.server.certs['cefeiner@gmail.com'] = {};
+})(seruro);
 
 /* Simple reference */
 function S() { return seruro; }

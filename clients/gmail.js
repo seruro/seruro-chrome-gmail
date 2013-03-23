@@ -29,10 +29,12 @@ seruro.client = {
 		
 		/* Check if the compose-wrapper node exists. */
 		var content = S().getClasses(document.body, S().getElement('content')[0]);
+		console.log(content);
 		/* Note: The above line looks only for the first content class. */
 		if (content.length > 0) {
 			/* Must preserve inner node check, even with a nasty double if. */
 			var wrappers = S().getClasses(content[0], S().getElement('composeWrapper'));
+			console.log(wrappers);
 			if (wrappers.length > 0) {
 				S().log("found existing composeWrapper.");
 				/* If yes, we do not need to wait. */
@@ -101,7 +103,7 @@ seruro.client = {
 	
 	newCompose: function (node) {
 		S().log("new-compose created.");
-		
+		console.log(node);
 		/* Add this to the Seruro message list. */
 		var id = S().addMessage(node);
 		
@@ -140,10 +142,18 @@ seruro.client = {
 			return;
 		
 		/* Should be converted to element and className lookup. */
-		var person = {node: node.firstChild, name: node.firstChild.firstChild.innerHTML};
+		var person = {
+			node: node.firstChild /* vN Y7BVp */, 
+			name: node.firstChild.firstChild.innerHTML,
+			address: node.firstChild.getAttribute('email')
+		};
 		S().addRecipient(person, args.message);
 		
-		var certIcon = S().UI.validCert();
+		var certIcon;
+		if (person.address in S().server.certs) 
+			certIcon = S().UI.validCert();
+		else
+			certIcon = S().UI.invalidCert();
 		person.node.insertBefore(certIcon, person.node.firstChild.nextSibling);
 		S().log('addPerson: ' + person.name + ' to message ' + args.message);
 	},
