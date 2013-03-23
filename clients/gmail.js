@@ -29,20 +29,20 @@ seruro.client = {
 		
 		/* Check if the compose-wrapper node exists. */
 		var content = S().getClasses(document.body, S().getElement('content')[0]);
-		console.log(content);
 		/* Note: The above line looks only for the first content class. */
 		if (content.length > 0) {
-			/* Must preserve inner node check, even with a nasty double if. */
+			S().setElement('contentNode', content[0]);
+			/* Look for compose wrapper .*/
 			var wrappers = S().getClasses(content[0], S().getElement('composeWrapper'));
-			console.log(wrappers);
 			if (wrappers.length > 0) {
-				S().log("found existing composeWrapper.");
-				/* If yes, we do not need to wait. */
-				S().client.startWatchers(S().getClasses(document.body, 
-					S().getElement('content')[0])[0]);
-				S().client.existingCompose();
-				return;
+				S().setElement("composeWrapperNode", wrappers[0]);
+				S().client.startWatchers();
+			} else {
+				/* Wait for the compose wrapper. */
+				S().client.buildOut();
 			}
+			/* Do not wait for the content node. */
+			return;
 		}
 
 		/* Wait for the page the create the 'known' content wrapper. */
@@ -51,40 +51,54 @@ seruro.client = {
 				/* Make sure this node IS THE NODE WE'RE LOOKING FOR... */
 				if (node.className != S().getElement('content')[i])
 					continue;
-				/* Remove this observer */
+				/* Remove this observer, since there is only one matching node. */
 				args.observer.disconnect();
-				/* Wait for new messages */
-				S().client.startWatchers(node);
+				S().setElement('contentNode', node);
+				S().client.buildOut();
 				break;
 			}
 		});
+		
 		return;
 	},
 	
-	startWatchers: function(node) {
+	buildOut: function() {
+		/* Wait for the page to complete it's build out. */
+
+		/* Wait for composeWrapper */
+		S().addObserver(S().getElement('contentNode'), function (node, args) {
+			/* Make sure this node IS THE NODE WE'RE LOOKING FOR... */
+			if (node.className != S().getElement('composeWrapper'))
+				return;
+			/* A compose-wrapper has been found, store this node.
+			 * All new-compose message divs will be created within this wrapper.
+			 */
+			S().setElement('composeWrapperNode', node);
+			/* Remove this observer, since there is only one matching node. */
+			args.observer.disconnect();
+			/* Create an observer for new messages. */
+			S().client.startWatchers();
+		});
+
+		return;
+	},
+	
+	startWatchers: function() {
 		/* Should add listeners to the page.
 		 * A listener will create an event when a specific element changes.
 		 * This allows Seruro to modify content without polling for UI events. 
 		 */
+		
 		S().log("startWatchers initialized.");
 		
-		S().setElement('contentNode', node);
-		/* A compose-wrapper has been found, store this node.
-		 * All new-compose message divs will be created within this wrapper.
-		 */
-		S().setElement('composeWrapperNode', 
-			S().getClasses(node, S().getElement('composeWrapper'))[0]);
+		/* Search for existing composes */
+		S().client.existingCompose();
 		
-		/* Create an observer for new messages. */
 		S().addObserver(S().getElement('composeWrapperNode'), function (node, args) {
 			/* A new-compose was created. */
 			S().client.newCompose(node);
 			/* This observer must persist for the entire session. */
 		});
-		
-		/* Create an observer for reading messages. */
-		
-		return;
 	},
 	
 	existingCompose: function() {
@@ -109,10 +123,9 @@ seruro.client = {
 		
 		/* The encrypt/sign buttons will go next to the subject. */
 		var subject = S().getClasses(node, S().getElement('composeSubject'));
-		if (subject.length == 0) {
-			S().log('(error) newCompose: could not find subject.');
-			return;
-		}
+		if (subject.length == 0)
+			return S().error('newCompose: could not find subject.');
+		
 		/* Small hack to gain real-estate. */
 		subject[0].firstChild.style.width = '90%'; 
 		/* Create and add the Encrypt/Sign buttons. */

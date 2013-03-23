@@ -13,12 +13,17 @@ var seruro = {
 		return;
 	},
 	
+	error: function(msg) {
+		S().log("(error) " + msg);
+		return false;
+	}
+	
 	init: function() {
 		if (S().initialized) return;
 		S().initialized = true;
 		
 		S().client.init();
-		S().log('Seruro: initialized.');
+		S().log('initialized.');
 		return;
 	},
 	
