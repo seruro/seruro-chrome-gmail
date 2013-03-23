@@ -1,6 +1,12 @@
 /* Seruro Chrome Extension */
 
 var display = {
+		
+	scripts: [
+	    "content.js",
+	    "framework/script/jquery-1.8.3.js"
+	],
+		
 	loadSettings: function(items) {
 		/* Callback of sync.get(items) */
 		
@@ -82,7 +88,26 @@ var display = {
 		}
 		
 		return true;
+	},
+	
+	injectScript: function(site, tabId, index) {
+		if (index > display.scripts.length) return;
+		
+		/* If this is the callback from the final injection. */
+		if (index == display.scripts.length) {
+			$.l("Injecting client " + site + " into tab " + tabId);
+			chrome.tabs.executeScript(tabId, {file: "clients/" + site + ".js"}, function () {
+				chrome.tabs.sendMessage(tabId, {event: "init"}, function() {});
+			});
+			return;
+		}
+		
+		$.l("Injecting " + display.scripts[index] + " into tab " + tabId);
+		chrome.tabs.executeScript(tabId, {file: display.scripts[index]}, function() {
+			display.injectScript(site, tabId, index + 1);
+		});
 	}
+	
 };
 
 $ = {
@@ -119,13 +144,7 @@ var seruro = {
 		chrome.pageAction.show(sender.tab.id);
 		
 		/* Add content script to client */
-		var content = "clients/" + request.site + ".js";
-		chrome.tabs.executeScript(sender.tab.id, {file: "content.js"}, function () {
-			$.l("Injected: content.js, " + sender.tab.id);
-			chrome.tabs.executeScript(sender.tab.id, {file: content}, function () {
-				chrome.tabs.sendMessage(sender.tab.id, {event: "init"}, function() {});
-			});
-		});
+		display.injectScript(request.site, sender.tab.id, 0);
 	}
 	
 };
