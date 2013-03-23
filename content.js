@@ -221,9 +221,9 @@ seruro.server = {
 	/* Local certs (in extension context, retrieved from server this session). */
 	certs: {},
 	
-	/* Ask server for a person's certificate. */
-	getCert: function(person) {
-		
+	haveCert: function(address) {
+		/* Implements a local caching of certs, may want to ask thick-client every time. */
+		return (address in S().server.certs);
 	},
 	
 	/* Ask server to encrypt a message. */

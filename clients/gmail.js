@@ -150,7 +150,7 @@ seruro.client = {
 		S().addRecipient(person, args.message);
 		
 		var certIcon;
-		if (person.address in S().server.certs) 
+		if (S().server.haveCert(person.address)) 
 			certIcon = S().UI.validCert();
 		else
 			certIcon = S().UI.invalidCert();
