@@ -28,31 +28,25 @@ seruro.client = {
 		S().log("Gmail client loaded.");
 
 		/* Check if the compose-wrapper node exists. */
-		//var content = S().getClasses(document.body, S().getElement('content')[0]);
 		var content = $(document.body).find(S('content')[0]);
 		/* Note: The above line looks only for the first content class. */
 		if (content.length > 0) {
+			S().log("found existing content wrapper.");
+			
 			S('contentNode', content.get(0));
-			/* Look for compose wrapper .*/
-			//var wrappers = S().getClasses(content[0], S().getElement('composeWrapper'));
-			var wrappers = $(content.first()).find(S('composeWrapper'));
-			if (wrappers.length > 0) {
-				S("composeWrapperNode", wrappers.get(0));
-				S().client.startWatchers();
-			} else {
-				/* Wait for the compose wrapper. */
-				S().client.buildOut();
-			}
+			S().client.buildOut();
 			/* Do not wait for the content node. */
 			return;
 		}
 
+		S().log("waiting for content wrapper.");
 		/* Wait for the page the create the 'known' content wrapper. */
 		S().addObserver(document.body, function (node, args) {
 			for (var i = 0; i < S('content').length; i++) {
 				/* Make sure this node IS THE NODE WE'RE LOOKING FOR... */
 				if (! $(node).hasClass(S('content')[i], true))
 					continue;
+				S().log("found new content wrapper.");
 				/* Remove this observer, since there is only one matching node. */
 				args.observer.disconnect();
 				S('contentNode', node);
@@ -65,13 +59,24 @@ seruro.client = {
 	},
 	
 	buildOut: function() {
+		/* Look for compose wrapper .*/
+		var wrappers = $(S('contentNode')).find(S('composeWrapper'));
+		if (wrappers.length > 0) {
+			S().log("found existing compose wrapper.");
+			
+			S("composeWrapperNode", wrappers.get(0));
+			S().client.startWatchers();
+			return;
+		}
+		
 		/* Wait for the page to complete it's build out. */
-
+		S().log("waiting for compose wrapper.");
 		/* Wait for composeWrapper */
 		S().addObserver(S('contentNode'), function (node, args) {
 			/* Make sure this node IS THE NODE WE'RE LOOKING FOR... */
 			if (! $(node).hasClass(S('composeWrapper'), true))
 				return;
+			S().log("found new compose wrapper.");
 			/* A compose-wrapper has been found, store this node.
 			 * All new-compose message divs will be created within this wrapper.
 			 */
@@ -120,7 +125,7 @@ seruro.client = {
 	newCompose: function (node) {
 		S().log("new-compose created.");
 		/* Add this to the Seruro message list. */
-		var id = S().addMessage(node);
+		var message = S().addMessage(node);
 		
 		/* The encrypt/sign buttons will go next to the subject. */
 		var subject = $(node).find(S('composeSubject'));
@@ -129,7 +134,7 @@ seruro.client = {
 		/* Small hack to gain real-estate. */
 		$(subject[0]).find(':first').css('width', '90%');
 		/* Create and add the Encrypt/Sign buttons. */
-		var encryptButton = S().UI.encryptButton();
+		var encryptButton = S().UI.encryptButton(message);
 		$(subject[0]).append(encryptButton);
 		
 		/* Add observers to the To/CC/BCC/From fields. */
@@ -137,13 +142,13 @@ seruro.client = {
 		if (people.length == 0)
 			return S().error("newCompose: could not find people table.");
 		
-		S().client.existingPerson(people[0], id);
+		S().client.existingPerson(people[0], message);
 
 		S().addObserver(people[0], 
 			/* Keep track of persons added and removed. */
 			/* Though, the list should be regenerated when submitted. */
 			{add: S().client.addPerson, remove: S().client.removePerson}, 
-			{message: id},
+			{message: message},
 			/* There are many elements in this observer catch-all. */
 			{subtree: true});
 		
@@ -175,8 +180,11 @@ seruro.client = {
 		var certIcon;
 		if (S().server.haveCert(person.address)) 
 			certIcon = S().UI.validCert();
-		else
+		else {
+			/* Update the UI if the message was previously set to be encrypted */
+			S().UI.actions.disableEncrypt(args.message);
 			certIcon = S().UI.invalidCert();
+		}
 		//person.node.insertBefore(certIcon, person.node.firstChild.nextSibling);
 		$(person.node).children().eq(1).before(certIcon);
 		S().log('addPerson: ' + person.name + ' to message ' + args.message);
@@ -202,18 +210,10 @@ seruro.client = {
 			return S().error("removePerson: cannot remove from unknown message.");
 		
 		/* Message object lookup via argument passed from newCompose observer. */
-		var message = S().messages[args.message];
-		for (var i = 0; i < message.recipients.length; i++) {
-			/* Note that this compares the firstChild, this should be converted to a class lookup. */
-			if (message.recipients[i].node === S().client.getContactNode(node)) {
-				S().log("removePerson: " + message.recipients[i].name + " from message " + args.message);
-				S().removeRecipient(message.recipients[i], message);
-				return;
-			}
-		}
+		var address = S().client.getContactAddress(node);
+		S().removeRecipient(address, args.message);
+		S().log("removePerson: " + address + " from message " + args.message);
 		
-		/* The node could not be found in this message, something is wrong. */
-		S().log("(error) removePerson: could not find node!");
 	}
 	
 };

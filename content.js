@@ -114,8 +114,16 @@ var seruro = {
 		return;
 	},
 	
-	removeRecipient: function(person, message) {
-		
+	removeRecipient: function(address, message) {
+		var newList = [];
+		for (var i = 0; i < S().messages[message].recipients.length; i++) {
+			if (address != S().messages[message].recipients[i].address)
+				newList.push(S().messages[message].recipients[i]);
+		}
+		/* Update UI if the contact list is empty. */
+		if (newList.length === 0)
+			S().UI.actions.disableEncrypt(message);
+		S().messages[message].recipients = newList;
 	},
 	
 	/* Basic getter, setter methods. */
@@ -139,22 +147,23 @@ var seruro = {
 	},
 	get: function(name) {
 		return document.getElementById(name);
-	},
-	
+	}
 };
 
 /* Construct and return UI components. */
 seruro.UI = {
-	encryptButton: function() {
+	encryptButton: function(message) {
 		/* Shown on the UI, a click will toggle the message to be encrypted. */
 		
-		return $("<img />", {
+		var button = $("<img />", {
 			click: function() {
-				S().UI.actions.encryptButtonClick();
+				S().UI.actions.encryptButtonClick(this, message);
 			},
 			css: { "float": "right", "cursor": "pointer" },
-			src: chrome.extension.getURL('images/icon.png')
+			src: chrome.extension.getURL('images/glyphicons_unlock.png')
 		});
+		S().messages[message].button = button;
+		return button;
 	},
 	
 	signButton: function() {
@@ -194,14 +203,51 @@ seruro.UI = {
 	
 	findCertModal: function() {
 		
+	},
+	
+	needCerts: function (message) {
+		/* Return an error, or open findCertModal */
 	}
 };
 
 /* Actions performed by the UI components. */
 seruro.UI.actions = {
-	encryptButtonClick: function(button) {
-		S().log("encryptButton clicked.");
-		console.log(this);
+	encryptButtonClick: function(button, message) {
+		/* The user has requested that their message be encrypted. */
+		/* Check is data is already encrypted */
+		if ($(button).attr('serurolocked') == "true") {
+			S().UI.actions.disableEncrypt(message);
+			return;
+		}
+
+		/* The encrypt operation should be performed now? */
+		for (var i = 0; i < S().messages[message].recipients.length; i++) {
+			if (! S().server.haveCert(S().messages[message].recipients[i].address))
+				return S().UI.needCerts(message);
+		}
+		S().UI.actions.enableEncrypt(message);
+	},
+	
+	disableEncrypt: function(message) {
+		/* Backup from stored message content */
+		/* Update visual */
+		var button = S().messages[message].button;
+		$(button).attr({
+			src: chrome.extension.getURL("images/glyphicons_unlock.png"),
+			seruroLocked: false
+		});
+		return;
+	},
+	
+	enableEncrypt: function(message) {
+		/* Store message content */
+		/* Encrypt composed message */
+		/* Update visual */
+		var button = S().messages[message].button;
+		$(button).attr({
+			src: chrome.extension.getURL("images/glyphicons_lock.png"),
+			seruroLocked: true
+		});
 		return;
 	},
 	
@@ -224,6 +270,7 @@ function Message () {
 	this.content = null;
 	/* Compose node */
 	this.node = null;
+	this.button = null;
 };
 
 /* Skel */
