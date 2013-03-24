@@ -177,17 +177,8 @@ seruro.client = {
 		};
 		S().addRecipient(person, args.message);
 
-		var certIcon;
-		if (S().server.haveCert(person.address)) 
-			certIcon = S().UI.validCert();
-		else {
-			/* Update the UI if the message was previously set to be encrypted */
-			S().UI.actions.disableEncrypt(args.message);
-			certIcon = S().UI.invalidCert();
-		}
-		//person.node.insertBefore(certIcon, person.node.firstChild.nextSibling);
+		var certIcon = S().getRecipientIcon(person);
 		$(person.node).children().eq(1).before(certIcon);
-		S().log('addPerson: ' + person.name + ' to message ' + args.message);
 	},
 	
 	getContactNode: function(node) {
@@ -211,9 +202,7 @@ seruro.client = {
 		
 		/* Message object lookup via argument passed from newCompose observer. */
 		var address = S().client.getContactAddress(node);
-		S().removeRecipient(address, args.message);
-		S().log("removePerson: " + address + " from message " + args.message);
-		
+		S().removeRecipient(address, args.message);		
 	}
 	
 };
