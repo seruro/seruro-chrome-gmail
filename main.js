@@ -4,7 +4,13 @@ var display = {
 		
 	scripts: [
 	    "content.js",
-	    "framework/script/jquery-1.8.3.js"
+	    "framework/script/jquery-1.8.3.js",
+	    "framework/script/bootstrap-modal.js",
+	    "framework/script/bootbox.js"
+	],
+	
+	css: [
+	    "framework/style/bootstrap-modal.css"
 	],
 		
 	loadSettings: function(items) {
@@ -90,6 +96,15 @@ var display = {
 		return true;
 	},
 	
+	injectCss: function(site, tabId, index) {
+		if (index >= display.css.length) return;
+		
+		$.l("Injecting " + display.css[index] + " into tab " + tabId);
+		chrome.tabs.insertCSS(tabId, {file: display.css[index]}, function() {
+			display.injectCss(site, tabId, index + 1);
+		});
+	},
+	
 	injectScript: function(site, tabId, index) {
 		if (index > display.scripts.length) return;
 		
@@ -144,6 +159,7 @@ var seruro = {
 		chrome.pageAction.show(sender.tab.id);
 		
 		/* Add content script to client */
+		display.injectCss(request.site, sender.tab.id, 0);
 		display.injectScript(request.site, sender.tab.id, 0);
 	}
 	

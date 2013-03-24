@@ -1,9 +1,12 @@
 /* Site Seruro API, requires a client-specific (seruro)  */
 
 var seruro = {
+	/* The client has finished loading all required scripts. */
 	loaded: false,
+	/* The client's initialize function has been called. */
 	initialized: false,
 	
+	/* List of all messages in the compose state. */
 	messages: {},
 	messageCounter: 0,
 	
@@ -85,11 +88,6 @@ var seruro = {
 		return observer;
 	},
 	
-	addListener: function(node, name, handler) {
-		if (node.addEventListener)
-			node.addEventListener(name, handler, false);
-	},
-	
 	addMessage: function(node) {
 		/* Add a potential message to the 'actual' message queue, assign an index, and
 		 * return to caller. 
@@ -116,6 +114,9 @@ var seruro = {
 	
 	removeRecipient: function(address, message) {
 		var newList = [];
+		/* Search the list and remove all instances of the recipient address. */
+		/* This may not be intended, if clients support duplicate address, or if the address
+		 * is duplicated across two fields (To/CC/BCC). */
 		for (var i = 0; i < S().messages[message].recipients.length; i++) {
 			if (address != S().messages[message].recipients[i].address)
 				newList.push(S().messages[message].recipients[i]);
@@ -126,27 +127,23 @@ var seruro = {
 		S().messages[message].recipients = newList;
 	},
 	
-	/* Basic getter, setter methods. */
-	getElement: function(name) {
-		return seruro.client.elements[name];
-	},
-	setElement: function(name, value) {
-		seruro.client.elements[name] = value;
-		return;
-	},
-	getClasses: function(node, name) {
-		var objects;
-		try {
-			objects = node.getElementsByClassName(name);
+	needCerts: function (options) {
+		/* Return an error, or open findCertModal */
+		if (typeof options !== 'object') {
+			return S().error("needCerts: not overloaded for positional parameters.");
 		}
-		catch (err) {
-			S().log(err);
-			objects = [];
+		
+		/* MUST have certs list. */
+		//if (options.message === undefined) throw "invalid object";
+		if (options.certs === undefined) throw "invalid object";
+		
+		/* The certs elements are recipients. */
+		var names = [];
+		for (var i = 0; i < options.certs.length; ++i) {
+			names.push(S().UI.getContact(options.certs[i]));
 		}
-		return objects;
-	},
-	get: function(name) {
-		return document.getElementById(name);
+		S().log("needCerts: prompting cert search for " + names.join(", "));
+		S().UI.failureAlert(S().lang.missingCertsError + names.join(", "));
 	}
 };
 
@@ -162,6 +159,7 @@ seruro.UI = {
 			css: { "float": "right", "cursor": "pointer" },
 			src: chrome.extension.getURL('images/glyphicons_unlock.png')
 		});
+		/* Keep button reference, so it can be used during async calls. */
 		S().messages[message].button = button;
 		return button;
 	},
@@ -197,16 +195,43 @@ seruro.UI = {
 		
 	},
 	
-	failureAlert: function() {
-		
+	failureAlert: function(msg, acceptCallback, options) {
+		/* Display 'msg' in an error dialog. 
+		 * If acceptCallback is a function, display an <OK> and <Cancel> where OK invokes
+		 * the callback with and optional object parameter of 'options'.
+		 */
+		var params = (arguments.length === 3) ? options : {};
+		try {
+			if (arguments.length > 1 && typeof acceptCallback === 'function') {
+				S().log("failureAlert: prompting alert action.")
+				bootbox.prompt(msg, function() {
+					acceptCallback(options);
+				});
+			} else {
+				S().log("failureAlert: displaying alert.");
+				bootbox.alert(msg);
+			}
+		} catch (err) {
+			return S().error("failureAlert: failed " + err);
+		}
+		return;
 	},
 	
-	findCertModal: function() {
-		
+	findCertModal: function(options) {
+		/* Accepts an object parameter. */
+		S().log("findCertModal: running.");
+		try {
+			bootbox.alert("findCertModal");
+		} catch (err) {
+			return S().error("findCertModal: " + err);
+		}
+		return;
 	},
 	
-	needCerts: function (message) {
-		/* Return an error, or open findCertModal */
+	/* Helper format functions */
+	getContact: function(recipient) {
+		if (recipient.name === undefined) throw "invalid recipient";
+		return recipient.name + "&nbsp;&lt;" + recipient.address + "&gt;"; 
 	}
 };
 
@@ -221,9 +246,15 @@ seruro.UI.actions = {
 		}
 
 		/* The encrypt operation should be performed now? */
+		var missingCerts = [];
 		for (var i = 0; i < S().messages[message].recipients.length; i++) {
 			if (! S().server.haveCert(S().messages[message].recipients[i].address))
-				return S().UI.needCerts(message);
+				missingCerts.push(S().messages[message].recipients[i]);
+		}
+		
+		if (missingCerts.length > 0) {
+			S().log("encryptButtonClick: missing " + missingCerts.length + " certs.");
+			return S().needCerts({message: message, certs: missingCerts});
 		}
 		S().UI.actions.enableEncrypt(message);
 	},
@@ -275,6 +306,7 @@ function Message () {
 
 /* Skel */
 seruro.client = {};
+seruro.lang = {};
 
 /* Communication to server (middleware) application. */
 seruro.server = {
@@ -304,7 +336,6 @@ seruro.server = {
 	}
 };
 
-
 /* Simple reference */
 function S(selector, value) { 
 	/* Quick access to element names. */
@@ -327,6 +358,12 @@ function hacks() {
 	(function(s) { 
 		s.server.certs['dave.anthony@live.com'] = {};
 		s.server.certs['cefeiner@gmail.com'] = {};
+	})(seruro);
+	
+	(function (s) {
+		s.lang = {
+			missingCertsError: "Could not find certificates for the following recipients: "
+		};
 	})(seruro);
 
 	(function ($) {

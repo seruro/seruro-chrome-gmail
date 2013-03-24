@@ -324,7 +324,7 @@ var bootbox = window.bootbox || (function(document, $) {
                 _class = handlers[i]['class'];
             } else if (i == handlers.length -1 && handlers.length <= 2) {
                 // always add a primary to the main option in a two-button dialog
-                _class = 'btn-primary';
+                _class = 'bs-btn-primary';
             }
 
             if (handlers[i]['label']) {
@@ -344,7 +344,7 @@ var bootbox = window.bootbox || (function(document, $) {
                 href = _defaultHref;
             }
 
-            buttons = "<a data-handler='"+i+"' class='btn "+_class+"' href='" + href + "'>"+icon+""+label+"</a>" + buttons;
+            buttons = "<a data-handler='"+i+"' class='bs-btn "+_class+"' href='" + href + "'>"+icon+""+label+"</a>" + buttons;
 
             callbacks[i] = callback;
         }
@@ -355,22 +355,22 @@ var bootbox = window.bootbox || (function(document, $) {
         // @see https://github.com/twitter/bootstrap/issues/4854
         // for an explanation of tabIndex=-1
 
-        var parts = ["<div class='bootbox modal' tabindex='-1' style='overflow:hidden;'>"];
+        var parts = ["<div class='bootbox bs-modal' tabindex='-1' style='overflow:hidden;'>"];
 
         if (options['header']) {
             var closeButton = '';
             if (typeof options['headerCloseButton'] == 'undefined' || options['headerCloseButton']) {
-                closeButton = "<a href='"+_defaultHref+"' class='close'>&times;</a>";
+                closeButton = "<a href='"+_defaultHref+"' class='bs-modal-close'>&times;</a>";
             }
 
-            parts.push("<div class='modal-header'>"+closeButton+"<h3>"+options['header']+"</h3></div>");
+            parts.push("<div class='bs-modal-header'>"+closeButton+"<h3>"+options['header']+"</h3></div>");
         }
 
         // push an empty body into which we'll inject the proper content later
-        parts.push("<div class='modal-body'></div>");
+        parts.push("<div class='bs-modal-body'></div>");
 
         if (buttons) {
-            parts.push("<div class='modal-footer'>"+buttons+"</div>");
+            parts.push("<div class='bs-modal-footer'>"+buttons+"</div>");
         }
 
         parts.push("</div>");
@@ -381,7 +381,7 @@ var bootbox = window.bootbox || (function(document, $) {
         var shouldFade = (typeof options.animate === 'undefined') ? _animate : options.animate;
 
         if (shouldFade) {
-            div.addClass("fade");
+            div.addClass("bs-modal-fade");
         }
 
         var optionalClasses = (typeof options.classes === 'undefined') ? _classes : options.classes;
@@ -390,7 +390,7 @@ var bootbox = window.bootbox || (function(document, $) {
         }
 
         // now we've built up the div properly we can inject the content whether it was a string or a jQuery object
-        div.find(".modal-body").html(str);
+        div.find(".bs-modal-body").html(str);
 
         function onCancel(source) {
             // for now source is unused, but it will be in future
@@ -430,7 +430,7 @@ var bootbox = window.bootbox || (function(document, $) {
         });
 
         // wire up button handlers
-        div.on('click', '.modal-footer a', function(e) {
+        div.on('click', '.bs-modal-footer a', function(e) {
 
             var handler   = $(this).data("handler"),
                 cb        = callbacks[handler],
