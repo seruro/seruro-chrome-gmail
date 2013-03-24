@@ -143,7 +143,8 @@ var seruro = {
 			names.push(S().UI.getContact(options.certs[i]));
 		}
 		S().log("needCerts: prompting cert search for " + names.join(", "));
-		S().UI.failureAlert(S().lang.missingCertsError + names.join(", "));
+		S().UI.failureAlert(S().lang.missingCertsError + names.join(", "), 
+			S().UI.findCertModal, options);
 	}
 };
 
@@ -204,7 +205,9 @@ seruro.UI = {
 		try {
 			if (arguments.length > 1 && typeof acceptCallback === 'function') {
 				S().log("failureAlert: prompting alert action.")
-				bootbox.prompt(msg, function() {
+				bootbox.confirm(msg, function(result) {
+					if (result === false)
+						return;
 					acceptCallback(options);
 				});
 			} else {
@@ -219,7 +222,6 @@ seruro.UI = {
 	
 	findCertModal: function(options) {
 		/* Accepts an object parameter. */
-		S().log("findCertModal: running.");
 		try {
 			bootbox.alert("findCertModal");
 		} catch (err) {
@@ -375,7 +377,7 @@ function hacks() {
 			var result = this.hasClassOld(selector);
 			return result;
 		};
-	}(jQuery));
+	}(window.jQuery));
 }
 
 
