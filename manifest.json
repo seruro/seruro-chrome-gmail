@@ -19,6 +19,10 @@
     "images/*"
   ],
   
+  "plugins": [
+    { "path": "plugins/seruro_plugin.dll" }
+  ],
+  
   "options_page": "seruro.html",
   
   "permissions": [

@@ -165,6 +165,11 @@ var seruro = {
 	
 };
 
+/* Interface to Seruro Thick Client. */
+var seruro.server = {
+	
+};
+
 /* When Icon is clicked, display settings. */
 document.addEventListener('DOMContentLoaded', function () {
 	chrome.storage.sync.get(null, display.loadSettings);
