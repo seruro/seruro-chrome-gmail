@@ -437,6 +437,7 @@ function hacks() {
 /* Communications */
 chrome.extension.onMessage.addListener(function(request, sender, sendResponse) {
 	/* Might want to match extension id */
+	console.log({request:request, sender:sender, response:sendResponse});
 	if (request.event == "init") {
 		/* Sent once the client code has been injected. */
 		seruro.init();

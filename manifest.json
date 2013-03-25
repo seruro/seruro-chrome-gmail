@@ -20,7 +20,7 @@
   ],
   
   "plugins": [
-    { "path": "plugins/seruro_plugin.dll" }
+    { "path": "plugins/seruro_plugin_win32.dll" }
   ],
   
   "options_page": "seruro.html",

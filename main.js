@@ -121,6 +121,29 @@ var display = {
 		chrome.tabs.executeScript(tabId, {file: display.scripts[index]}, function() {
 			display.injectScript(site, tabId, index + 1);
 		});
+	},
+	
+	getRequest: function (request, sender, sendResponse) {
+		/* A general catch for context->extension message passing. */
+		console.log({request: request, sender: sender, response: sendResponse});
+		if (request.type === undefined) return;
+		
+		var response;
+		/* Switch based on type of message. */
+		switch (request.type) {
+		case 'init':
+			/* A new client has joined. */
+			response = seruro.addClient(request, sender);
+			break;
+		case 'api':
+			/* Handle interface->thin app API requests. */
+			response = seruro.api(request, sender);
+			break;
+		default:
+			return;
+		}
+		/* Optionally call callback. */
+		sendResponse(response);
 	}
 	
 };
@@ -140,19 +163,25 @@ display.settings = {
 var seruro = {
 	/* Maybe save the current client (could potentially have multiple)? */
 	client: null,
+	plugin: null,
+	exports: [
+	    /* Thin client function exports. */
+	    'haveCert', 'myAddresses', 'isReady', 'encryptBlob', 'decryptBlob',
+	    /* Advanced exports */
+	    'requestCert', 'useKey'
+    ],
 	
 	/* Todo: could be represented as a single site with multiple URLs. */
 	clients: {gmail: "https://mail.google.com"},
 	
 	checkClient: function (tabId, site) {
 		chrome.tabs.executeScript(tabId, {
-			code: "chrome.extension.sendRequest({site: '" + site + "', loaded: typeof seruro !== 'undefined'});"
+			code: "chrome.extension.sendMessage({type: 'init', site: '" + site + "', loaded: typeof seruro !== 'undefined'});"
 		});
 	},
 	
-	addClient: function (request, sender, sendResponse) {
+	addClient: function (request, sender) {
 		/* Only load client if it does not already exist. */
-		console.log(request);
 		if (request.loaded == true) return;
 
 		//seruro.client = request.site;
@@ -161,14 +190,29 @@ var seruro = {
 		/* Add content script to client */
 		display.injectCss(request.site, sender.tab.id, 0);
 		display.injectScript(request.site, sender.tab.id, 0);
+	},
+	
+	api: function (request, sender) {
+		/* Must specify the API in request.api. */
+		if (request.api === undefined || seruro.exports.indexOf(request.api) == -1) 
+			return {result: false};
+		/* Allow the requestor to set API params as an object and a callback.
+		 * This (separate) callback may be replaced with the sendResponse.
+		 */
+		var result = seruro.plugin[request.api](request.params, request.callback);
+		return {result: result};
+	},
+	
+	init: function() {
+		/* Create plugin. */
+		seruro.plugin = document.createElement('embed');
+		seruro.plugin.type = "application/x-seruroplugin";
+		document.body.appendChild(seruro.plugin);
 	}
 	
 };
 
-/* Interface to Seruro Thick Client. */
-var seruro.server = {
-	
-};
+seruro.init();
 
 /* When Icon is clicked, display settings. */
 document.addEventListener('DOMContentLoaded', function () {
@@ -176,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 /* Message listeners */
-chrome.extension.onRequest.addListener(seruro.addClient)
+chrome.extension.onMessage.addListener(display.getRequest);
 
 /* Tabs listeners */
 chrome.tabs.onUpdated.addListener(display.checkURL);
