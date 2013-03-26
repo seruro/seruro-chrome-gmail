@@ -193,21 +193,34 @@ var seruro = {
 	},
 	
 	api: function (request, sender) {
-		/* Must specify the API in request.api. */
-		if (request.api === undefined || seruro.exports.indexOf(request.api) == -1) 
+		/* Must specify the API command in request.api, and the message ID in request.message. */
+		if (request.api === undefined || request.message === undefined ||
+			/* We can pre-sanitize the API command by checking against a local list. */
+			seruro.exports.indexOf(request.api) == -1) 
+			return {result: false};
+		if (seruro.plugin.valid === undefined)
 			return {result: false};
 		/* Allow the requestor to set API params as an object and a callback.
 		 * This (separate) callback may be replaced with the sendResponse.
 		 */
-		var result = seruro.plugin[request.api](request.params, request.callback);
+		var result = seruro.plugin[request.api](request.params, function(respose) {
+			request.callback(response, request.message);
+		});
+		/* Should be true if API command was valid and received. */
 		return {result: result};
 	},
 	
-	init: function() {
+	createPlugin: function() {
 		/* Create plugin. */
 		seruro.plugin = document.createElement('embed');
 		seruro.plugin.type = "application/x-seruroplugin";
-		document.body.appendChild(seruro.plugin);
+		document.body.appendChild(seruro.plugin);	
+		
+		console.log("Seruro: Plugin valid: " + seruro.plugin.valid + ", version: " + seruro.plugin.version);
+	},
+	
+	init: function() {
+		seruro.createPlugin();
 	}
 	
 };
