@@ -125,7 +125,8 @@ seruro.client = {
 	newCompose: function (node) {
 		S().log("new-compose created.");
 		/* Add this to the Seruro message list. */
-		var message = S().addMessage(node);
+		//var message = S().addMessage(node);
+		var message = S().newMessage(node);
 		
 		/* The encrypt/sign buttons will go next to the subject. */
 		var subject = $(node).find(S('composeSubject'));
@@ -134,7 +135,8 @@ seruro.client = {
 		/* Small hack to gain real-estate. */
 		$(subject[0]).find(':first').css('width', '90%');
 		/* Create and add the Encrypt/Sign buttons. */
-		var encryptButton = S().UI.encryptButton(message);
+		//var encryptButton = S().UI.encryptButton(message);
+		var encryptButton = message.encryptButton();
 		$(subject[0]).append(encryptButton);
 		
 		/* Add observers to the To/CC/BCC/From fields. */
@@ -160,7 +162,8 @@ seruro.client = {
 		
 		var people = $(wrapper).find(S('personWrapper'));
 		for (var i = 0; i < people.length; i++) {
-			S().client.addPerson(people[i], {message: message});
+			//S().client.addPerson(people[i], {message: message});
+			S().client.addPerson(people[i], {message:message});
 		}
 	},
 
@@ -175,7 +178,9 @@ seruro.client = {
 			name: S().client.getContactName(node),
 			address: S().client.getContactAddress(node)
 		};
-		S().addRecipient(person, args.message);
+		//S().addRecipient(person, args.message);
+		console.log(args.message);
+		args.message.addRecipient(person);
 
 		var certIcon = S().getRecipientIcon(person);
 		$(person.node).children().eq(1).before(certIcon);
@@ -197,12 +202,13 @@ seruro.client = {
 		/* If a person is removed, not tracking whether they are in To/CC/BCC/From. */
 		if (! $(node).hasClass(S('personWrapper'), true))
 			return;
-		if (S().messages[args.message] === undefined)
-			return S().error("removePerson: cannot remove from unknown message.");
+		//if (S().messages[args.message] === undefined)
+		//	return S().error("removePerson: cannot remove from unknown message.");
 		
 		/* Message object lookup via argument passed from newCompose observer. */
 		var address = S().client.getContactAddress(node);
-		S().removeRecipient(address, args.message);		
+		//S().removeRecipient(address, args.message);
+		args.message.removeRecipient(address);
 	}
 	
 };

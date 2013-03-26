@@ -7,7 +7,7 @@ var seruro = {
 	initialized: false,
 	
 	/* List of all messages in the compose state. */
-	messages: {},
+	//messages: {},
 	messageCounter: 0,
 	
 	/* Abstraction for writing to the console. */
@@ -105,18 +105,10 @@ var seruro = {
 		return id;
 	},
 	
-	addRecipient: function(person, message) {
-		/* Add a recipient to a message. */
-		if (typeof person !== 'object' || person.address === undefined) throw "invalid person";
-		if (typeof message !== 'number') throw "invalid message";
-		S().log('addRecipient: ' + person.name + ' to message ' + message);
-		
-		/* Update the UI if the message was previously set to be encrypted */
-		if (! S().server.haveCert(person.address)) {
-			S().UI.actions.disableEncrypt(message);
-		}
-		S().messages[message].recipients.push(person);
-		return;
+	newMessage: function(node) {
+		var message = new seruro.Message(node);
+		message.id = seruro.messageCounter++;
+		return message;
 	},
 	
 	getRecipientIcon: function(person) {
@@ -124,43 +116,6 @@ var seruro = {
 		if (typeof person !== 'object' || person.address === undefined) throw "invalid person";
 		
 		return (S().server.haveCert(person.address)) ? S().UI.validCert() : S().UI.invalidCert();
-	},
-	
-	removeRecipient: function(address, message) {
-		var newList = [];
-		/* Search the list and remove all instances of the recipient address. */
-		/* This may not be intended, if clients support duplicate address, or if the address
-		 * is duplicated across two fields (To/CC/BCC). */
-		S().log("removeRecipient: " + address + " from message " + message);
-		
-		for (var i = 0; i < S().messages[message].recipients.length; i++) {
-			if (address != S().messages[message].recipients[i].address)
-				newList.push(S().messages[message].recipients[i]);
-		}
-		
-		/* Reset the encrypt status to 'reset' if contact list is empty.
-		 * Otherwise set the encrypt status to 'reset' if it was previously disabled, but
-		 * not can be 'reset'. 
-		 */
-		S().messages[message].recipients = newList;
-		S().UI.actions.resetEncrypt(message, {force: (newList.length === 0)});
-	},
-	
-	isEncryptable: function(message) {
-		/* Returns whether a message can be encryped based on cert status of recipients. */
-		return (S().getMissingCerts(message).length === 0);
-	},
-	
-	getMissingCerts: function(message) {
-		/* Returns a list of recipients who are missing certs. */
-		if (typeof message !== 'number') throw "invalid message";
-		var missingCerts = [];
-		for (var i = 0; i < S().messages[message].recipients.length; i++) {
-			if (! S().server.haveCert(S().messages[message].recipients[i].address))
-				missingCerts.push(S().messages[message].recipients[i]);
-		}
-
-		return missingCerts;
 	},
 	
 	needCerts: function (options) {
@@ -185,27 +140,7 @@ var seruro = {
 };
 
 /* Construct and return UI components. */
-seruro.UI = {
-	encryptButton: function(message) {
-		/* Shown on the UI, a click will toggle the message to be encrypted. */
-		
-		var button = $("<img />", {
-			click: function() {
-				S().UI.actions.encryptButtonClick(this, message);
-			},
-			css: { "float": "right", "cursor": "pointer" },
-			src: chrome.extension.getURL('images/glyphicons_unlock.png'),
-			seruroLocked: false
-		});
-		/* Keep button reference, so it can be used during async calls. */
-		S().messages[message].button = button;
-		return button;
-	},
-	
-	signButton: function() {
-		
-	},
-	
+seruro.UI = {	
 	validCert: function() {
 		/* Shows next to a recipient person who has a valid cert. */
 		
@@ -270,72 +205,14 @@ seruro.UI = {
 	/* Helper format functions */
 	getContact: function(recipient) {
 		if (recipient.name === undefined) throw "invalid recipient";
-		return recipient.name + "&nbsp;&lt;" + recipient.address + "&gt;"; 
+		return $("<div></div>", {
+			html: recipient.name + "&nbsp;&lt;<b>" + recipient.address + "</b>&gt;"
+		});
 	}
 };
 
 /* Actions performed by the UI components. */
 seruro.UI.actions = {
-	encryptButtonClick: function(button, message) {
-		/* The user has requested that their message be encrypted. */
-		/* Check is data is already encrypted */
-		if ($(button).attr('serurolocked') == "true") {
-			S().UI.actions.resetEncrypt(message, {force: true});
-			return;
-		}
-
-		/* The encrypt operation should be performed now? */
-		var missingCerts = S().getMissingCerts(message);
-		
-		if (missingCerts.length > 0) {
-			S().log("encryptButtonClick: missing " + missingCerts.length + " certs.");
-			return S().needCerts({message: message, certs: missingCerts});
-		}
-		S().UI.actions.enableEncrypt(message);
-	},
-	
-	disableEncrypt: function(message) {
-		/* Backup from stored message content */
-		/* Update visual */
-		var button = S().messages[message].button;
-		$(button).attr({
-			src: chrome.extension.getURL("images/glyphicons_unlock_bad.png"),
-			seruroLocked: false
-		});
-		return;
-	},
-	
-	resetEncrypt: function(message, options) {
-		/* Checks to see if the encrypt button can be 'enabled', setting it to a clickable state. */
-		var button = S().messages[message].button;
-		
-		if (arguments.length == 2 && options.force !== true) {
-			/* If not forcing this reset, check message status. */
-			if ($(button).attr('serurolocked') == "true" || ! S().isEncryptable(message)) {
-				/* Should not be 'reset', because it was previously enables, or cannot be enabled. */
-				return;
-			}
-		}
-
-		$(button).attr({
-			src: chrome.extension.getURL("images/glyphicons_unlock.png"),
-			seruroLocked: false
-		});
-		return;
-	},
-	
-	enableEncrypt: function(message) {
-		/* Store message content */
-		/* Encrypt composed message */
-		/* Update visual */
-		var button = S().messages[message].button;
-		$(button).attr({
-			src: chrome.extension.getURL("images/glyphicons_lock_good.png"),
-			seruroLocked: true
-		});
-		return;
-	},
-	
 	validCertClick: function(button) {
 		
 		return;
@@ -348,14 +225,157 @@ seruro.UI.actions = {
 };
 
 /* Object message template. */
-function Message () {
-	this.sender = null;
-	/* A list of (node, name) pairs. */
-	this.recipients = [];
-	this.content = null;
-	/* Compose node */
-	this.node = null;
-	this.button = null;
+seruro.Message = function (node) {
+	this.id = 0;
+	this.sender = null;		/* The From (assuming each client may allow multiple. */
+	this.recipients = [];	/* A list of (node, name) pairs. */
+	this.content = null;	/* The message content. */
+	this.node = node;		/* UI element for message. */
+	this.button = null;		/* UI element for toggling encrypt. */
+	
+	this.addRecipient = function (person) {
+		/* Add a recipient to a message. */
+		if (typeof person !== 'object' || person.address === undefined) throw "invalid person";
+		S().log('addRecipient: ' + person.name + ' to message ' + this.id);
+		
+		/* Update the UI if the message was previously set to be encrypted */
+		if (! S().server.haveCert(person.address)) {
+			//S().UI.actions.disableEncrypt(message);
+			this.disableEncrypt();
+		}
+		//S().messages[message].recipients.push(person);
+		this.recipients.push(person);
+		return;
+	};
+	
+	this.removeRecipient = function (address) {
+		var newList = [];
+		/* Search the list and remove all instances of the recipient address. */
+		/* This may not be intended, if clients support duplicate address, or if the address
+		 * is duplicated across two fields (To/CC/BCC). */
+		S().log("removeRecipient: " + address + " from message " + this.id);
+		
+		//for (var i = 0; i < S().messages[message].recipients.length; i++) {
+		for (var i = 0; i < this.recipients.length; i++) {
+			//if (address != S().messages[message].recipients[i].address)
+			if (address != this.recipients[i].address)
+				//newList.push(S().messages[message].recipients[i]);
+				newList.push(this.recipients[i]);
+		}
+		
+		/* Reset the encrypt status to 'reset' if contact list is empty.
+		 * Otherwise set the encrypt status to 'reset' if it was previously disabled, but
+		 * not can be 'reset'. 
+		 */
+		//S().messages[message].recipients = newList;
+		this.recipients = newList;
+		//S().UI.actions.resetEncrypt(message, {force: (newList.length === 0)});
+		this.resetEncrypt({force: (newList.length === 0)});
+	};
+	
+	this.isEncryptable = function () {
+		/* Returns whether a message can be encryped based on cert status of recipients. */
+		return (this.getMissingCerts().length === 0);
+	};
+	
+	this.getMissingCerts = function () {
+		/* Returns a list of recipients who are missing certs. */
+		//if (typeof message !== 'number') throw "invalid message";
+		var missingCerts = [];
+		//for (var i = 0; i < S().messages[message].recipients.length; i++) {
+		for (var i = 0; i < this.recipients.length; i++) {
+			//if (! S().server.haveCert(S().messages[message].recipients[i].address))
+			if (! S().server.haveCert(this.recipients[i].address))
+				//missingCerts.push(S().messages[message].recipients[i]);
+				missingCerts.push(this.recipients[i]);
+		}
+
+		return missingCerts;
+	};
+	
+	this.encryptButton = function () {
+		/* Shown on the UI, a click will toggle the message to be encrypted. */
+		var message = this;
+		var button = $("<img />", {
+			click: function() {
+				message.encryptButtonClick(message);
+			},
+			css: { "float": "right", "cursor": "pointer" },
+			src: chrome.extension.getURL('images/glyphicons_unlock.png'),
+			seruroLocked: false
+		});
+		/* Keep button reference, so it can be used during async calls. */
+		this.button = button;
+		return button;
+	};
+	
+	this.signButton = function () {
+		
+	};
+
+	this.encryptButtonClick = function (message) {
+		/* The user has requested that their message be encrypted. */
+		/* Check is data is already encrypted */
+		//if ($(button).attr('serurolocked') == "true") {
+		if ($(message.button).attr('serurolocked') == "true") {
+			//S().UI.actions.resetEncrypt(message, {force: true});
+			message.resetEncrypt({force: true});
+			return;
+		}
+
+		/* The encrypt operation should be performed now? */
+		//var missingCerts = S().getMissingCerts(message);
+		var missingCerts = message.getMissingCerts();
+		
+		if (missingCerts.length > 0) {
+			S().log("encryptButtonClick: missing " + missingCerts.length + " certs.");
+			return S().needCerts({message: message, certs: missingCerts});
+		}
+		//S().UI.actions.enableEncrypt(message);
+		message.enableEncrypt();
+	};
+	
+	this.disableEncrypt = function() {
+		/* Backup from stored message content */
+		/* Update visual */
+		//var button = S().messages[message].button;
+		$(this.button).attr({
+			src: chrome.extension.getURL("images/glyphicons_unlock_bad.png"),
+			seruroLocked: false
+		});
+		return;
+	};
+	
+	this.resetEncrypt = function(options) {
+		/* Checks to see if the encrypt button can be 'enabled', setting it to a clickable state. */
+		//var button = S().messages[message].button;
+		
+		if (options.force !== true) {
+			/* If not forcing this reset, check message status. */
+			if ($(this.button).attr('serurolocked') == "true" || ! this.isEncryptable()) {
+				/* Should not be 'reset', because it was previously enables, or cannot be enabled. */
+				return;
+			}
+		}
+
+		$(this.button).attr({
+			src: chrome.extension.getURL("images/glyphicons_unlock.png"),
+			seruroLocked: false
+		});
+		return;
+	};
+	
+	this.enableEncrypt = function() {
+		/* Store message content */
+		/* Encrypt composed message */
+		/* Update visual */
+		//var button = S().messages[message].button;
+		$(this.button).attr({
+			src: chrome.extension.getURL("images/glyphicons_lock_good.png"),
+			seruroLocked: true
+		});
+		return;
+	};
 };
 
 /* Skel */
