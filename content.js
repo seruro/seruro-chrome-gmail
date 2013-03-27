@@ -62,7 +62,6 @@ var seruro = {
 			/* Take optional parameters, but create object so the observer attack. */
 			params = (typeof params === 'object') ? params : {};
 			params.observer = observer;
-			
 			mutations.forEach(function(mutation) {
 				var i;
 				/* Check nodes mutated when event fires. */
@@ -73,6 +72,10 @@ var seruro = {
 				if (methods.remove !== undefined) {
 					for (i = 0; i < mutation.removedNodes.length; i++)
 						methods.remove(mutation.removedNodes[i], params);
+				}
+				/* If searching for an attribute change, the type of mutation must be 'attributes' */
+				if (methods.attr !== undefined && mutation.type == "attributes") {
+					methods.attr(mutation.target, params);
 				}
 			});
 		});
@@ -205,9 +208,7 @@ seruro.UI = {
 	/* Helper format functions */
 	getContact: function(recipient) {
 		if (recipient.name === undefined) throw "invalid recipient";
-		return $("<div></div>", {
-			html: recipient.name + "&nbsp;&lt;<b>" + recipient.address + "</b>&gt;"
-		});
+		return recipient.name + "&nbsp;&lt;<b>" + recipient.address + "</b>&gt;";
 	}
 };
 
@@ -232,6 +233,15 @@ seruro.Message = function (node) {
 	this.content = null;	/* The message content. */
 	this.node = node;		/* UI element for message. */
 	this.button = null;		/* UI element for toggling encrypt. */
+	
+	this.setSender = function(sender) {
+		this.sender = {name: "You", address: sender, node: null};
+		if (! S().server.haveAddress(this.sender.address)) {
+			this.disableEncrypt();
+		} else {
+			this.resetEncrypt();
+		}
+	};
 	
 	this.addRecipient = function (person) {
 		/* Add a recipient to a message. */
@@ -270,12 +280,12 @@ seruro.Message = function (node) {
 		//S().messages[message].recipients = newList;
 		this.recipients = newList;
 		//S().UI.actions.resetEncrypt(message, {force: (newList.length === 0)});
-		this.resetEncrypt({force: (newList.length === 0)});
+		this.resetEncrypt({force: (newList.length === 0 && S().server.haveAddress(this.sender.address))});
 	};
 	
 	this.isEncryptable = function () {
 		/* Returns whether a message can be encryped based on cert status of recipients. */
-		return (this.getMissingCerts().length === 0);
+		return (this.getMissingCerts().length === 0 && S().server.haveAddress(this.sender.address));
 	};
 	
 	this.getMissingCerts = function () {
@@ -331,6 +341,10 @@ seruro.Message = function (node) {
 			S().log("encryptButtonClick: missing " + missingCerts.length + " certs.");
 			return S().needCerts({message: message, certs: missingCerts});
 		}
+		if (! S().server.haveAddress(this.sender.address)) {
+			S().log("encryptButtonClick: " + this.sender.address + " cannot decrypt or sign messages.");
+			return S().needCerts({message: message, certs: this.sender});
+		}
 		//S().UI.actions.enableEncrypt(message);
 		message.enableEncrypt();
 	};
@@ -350,10 +364,11 @@ seruro.Message = function (node) {
 		/* Checks to see if the encrypt button can be 'enabled', setting it to a clickable state. */
 		//var button = S().messages[message].button;
 		
-		if (options.force !== true) {
+		if (arguments.length === 0 || options.force !== true) {
 			/* If not forcing this reset, check message status. */
-			if ($(this.button).attr('serurolocked') == "true" || ! this.isEncryptable()) {
-				/* Should not be 'reset', because it was previously enables, or cannot be enabled. */
+			if ($(this.button).attr('serurolocked') == "true" || 
+				(! this.isEncryptable() || ! S().server.haveAddress(this.sender.address))) {
+				/* Should not be 'reset', because it was previously enabled, or cannot be enabled. */
 				return;
 			}
 		}
@@ -375,6 +390,19 @@ seruro.Message = function (node) {
 			seruroLocked: true
 		});
 		return;
+	};
+	
+	/* The client should set a getter function. Depending on how content is accessed.
+	 *  Will return {subject:, content:}
+	 */
+	this.getContent = function() {
+		if (this.getClientContent === undefined || this.getClientSubject) 
+			throw "invalid content getter";
+		new content = {};
+		content.subject = this.getClientSubject();
+		content.content = this.getClientContent();
+		S().log("getContent: subject is " + content.subject + ", content: " + content.content);
+		return content;
 	};
 };
 
@@ -407,6 +435,14 @@ seruro.server = {
 	
 	decrypt: function(message, self) {
 		
+	},
+	
+	addresses: function() {
+		return {"teddy.reed@gmail.com": true};
+	},
+	
+	haveAddress: function(address) {
+		return (address == "teddy.reed@gmail.com");
 	}
 };
 

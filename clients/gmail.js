@@ -11,14 +11,19 @@ seruro.client = {
 		content: ['.dw', '.dw.np'],
 		composeWrapper: '.no',
 		composeWindow: '.AD',
-		composeSubject: '.aoD.az6',
+		composeSubjectWrapper: '.aoD.az6', /* .aoD.az6 */
+		composeSubject: 'input[name=subject]',
 		composePeople: '.GS',
 		
 		personWrapper: '.vR',
 		
 		composeContent: '.M9',
 		composeContext: '.J-M.jQjAxd',
-		insertOption: '.J-Ph.J-N'
+		insertOption: '.J-Ph.J-N',
+		composeBody: 'div[role=textbox]',
+		
+		composeFromWrapper: '.az3',
+		composeFrom: 'input[name=from]',
 	},	
 	
 	init: function() {
@@ -125,36 +130,60 @@ seruro.client = {
 	newCompose: function (node) {
 		S().log("new-compose created.");
 		/* Add this to the Seruro message list. */
-		//var message = S().addMessage(node);
 		var message = S().newMessage(node);
-		
-		/* The encrypt/sign buttons will go next to the subject. */
-		var subject = $(node).find(S('composeSubject'));
-		if (subject.length == 0)
-			return S().error('newCompose: could not find subject.');
-		/* Small hack to gain real-estate. */
-		$(subject[0]).find(':first').css('width', '90%');
-		/* Create and add the Encrypt/Sign buttons. */
-		//var encryptButton = S().UI.encryptButton(message);
-		var encryptButton = message.encryptButton();
-		$(subject[0]).append(encryptButton);
 		
 		/* Add observers to the To/CC/BCC/From fields. */
 		var people = $(node).find(S('composePeople'));
-		if (people.length == 0)
+		if (people.length === 0)
 			return S().error("newCompose: could not find people table.");
-		
+		/* Search for existing recipients. */
 		S().client.existingPerson(people[0], message);
-
+		/* Watch for new recipients. */
 		S().addObserver(people[0], 
 			/* Keep track of persons added and removed. */
 			/* Though, the list should be regenerated when submitted. */
 			{add: S().client.addPerson, remove: S().client.removePerson}, 
 			{message: message},
 			/* There are many elements in this observer catch-all. */
-			{subtree: true});
+			{subtree: true}
+		);
+		
+		var from = $(node).find(S('composeFrom'));
+		if (from.length === 0)
+			return S().error("newCompose: could not find from field.");
+		S().client.setSender(null, {message: message});
+		/* Watch for from change. */
+		S().addObserver(from[0], 
+			{attr: S().client.setSender}, {message: message}, 
+			{attributes: true, characterData: true}
+		);
+		
+		/* The encrypt/sign buttons will go next to the subject. */
+		var subject = $(node).find(S('composeSubjectWrapper'));
+		if (subject.length == 0)
+			return S().error('newCompose: could not find subject.');
+		/* Small hack to gain real-estate. */
+		$(subject[0]).find(':first').css('width', '90%');
+		/* Create and add the Encrypt/Sign buttons. */
+		var encryptButton = message.encryptButton();
+		$(subject[0]).append(encryptButton);
+		
+		/* Set getter functions for subject, content. */
+		message.getClientSubject = function() {
+			return $(node).find(S('composeSubject')).attr('value');
+		};
+		message.getClientContent = function() {
+			return $(node).find(S('composeBody')).html();
+		};
 		
 		return;
+	},
+	
+	setSender: function(wrapper, args) {
+		/* If there was an existing compose, it WILL have an existing 'from'. */
+		var sender = $(args.message.node).find(S('composeFrom')).attr('value');
+		S().log("setSender: from changed to " + sender);
+		args.message.setSender(sender);
 	},
 	
 	existingPerson: function(wrapper, message) {
