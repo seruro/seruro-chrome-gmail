@@ -212,9 +212,12 @@ var seruro = {
 		/* Allow the requestor to set API params as an object and a callback.
 		 * This (separate) callback may be replaced with the sendResponse.
 		 */
-		var result = seruro.plugin['apiCall'](request.params, function(respose) {
+		console.log(request);
+		var result = seruro.plugin['apiCall']({api:request.api, params:request.params}, function(response) {
+			/* Should be a Message() method */
 			request.callback(response);
 		});
+		console.log("Seruro: API command " + request.api + " success: " + result);
 		/* Should be true if API command was valid and received. */
 		return {result: result};
 	},

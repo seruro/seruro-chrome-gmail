@@ -443,6 +443,19 @@ seruro.server = {
 	
 	haveAddress: function(address) {
 		return (address == "teddy.reed@gmail.com");
+	},
+	
+	apiCall: function(api, params, callback) {
+		/* Sill WIP. */
+		chrome.extension.sendMessage({
+			api: api,
+			params: params,
+			callback: callback,
+			type: 'api'
+		}, function(result) {
+			/* Result of async call. */
+			S().log("apiCall: " + api + " returned call result: " + result);
+		});
 	}
 };
 
