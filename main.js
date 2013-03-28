@@ -192,9 +192,18 @@ var seruro = {
 		display.injectScript(request.site, sender.tab.id, 0);
 	},
 	
+	/* Call an API command from a plugin.
+	 * request: 
+	 *   api = name of api method to call
+	 *   type = api, directs the request to this handler
+	 *   params = object to pass to api method
+	 *   callback = method passed to api, called asynchronously 
+	 * response:
+	 *   result = success or failure of api call
+	 */
 	api: function (request, sender) {
-		/* Must specify the API command in request.api, and the message ID in request.message. */
-		if (request.api === undefined || request.message === undefined ||
+		/* Must specify the API command in request.api. */
+		if (request.api === undefined || 
 			/* We can pre-sanitize the API command by checking against a local list. */
 			seruro.exports.indexOf(request.api) == -1) 
 			return {result: false};
@@ -203,8 +212,8 @@ var seruro = {
 		/* Allow the requestor to set API params as an object and a callback.
 		 * This (separate) callback may be replaced with the sendResponse.
 		 */
-		var result = seruro.plugin[request.api](request.params, function(respose) {
-			request.callback(response, request.message);
+		var result = seruro.plugin['apiCall'](request.params, function(respose) {
+			request.callback(response);
 		});
 		/* Should be true if API command was valid and received. */
 		return {result: result};
