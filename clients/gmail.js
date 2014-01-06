@@ -220,7 +220,7 @@ seruro.client = {
 	},
 	
 	getContactName: function(node) {
-		return $(node).find(':first').find(":first").html()
+		return $(node).find(':first').find(":first").html();
 	},
 	
 	getContactAddress: function(node){

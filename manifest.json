@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
 
-  "name": "Seruro",
+  "name": "Seruro Extension for Chrome",
   "description": "This extension integrates Seruro into Google Chrome.",
   "version": "0.1",
 
@@ -19,9 +19,11 @@
     "images/*"
   ],
   
+  /*
   "plugins": [
     { "path": "plugins/seruro_plugin_win32.dll" }
   ],
+  */
   
   "options_page": "seruro.html",
   

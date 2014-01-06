@@ -87,8 +87,7 @@ var display = {
 		console.log(changeInfo);
 		for (site in seruro.clients) {
 			/* Make sure Seruro is enabled for the site, then check the URL. */
-			if (display.settings.sites[site] && 
-				tab.url.indexOf(seruro.clients[site]) == 0) {
+			if (display.settings.sites[site] && tab.url.indexOf(seruro.clients[site]) == 0) {
 				seruro.checkClient(tabId, site);
 			}
 		}
@@ -252,6 +251,12 @@ chrome.tabs.onUpdated.addListener(display.checkURL);
 
 /* Storage listeners */
 chrome.storage.onChanged.addListener(function(changes, namespace) {
+	/* The the settings were saved. */
+	if (changes.settings) {
+		for (change in changes.settings.newValue) {
+			display.settings[change] = changes.settings.newValue[change];
+		}
+	}
 	for (key in changes) {
 		var storageChange = changes[key];
 		console.log('Storage key "%s" in namespace "%s" changed. Old value was "%s", new value is "%s".',
